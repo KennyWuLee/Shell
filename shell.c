@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 char* prompt = ">";
 
-int getinput(char* input) {
+void getinput(char* input) {
 	printf("%s", prompt);
 	int i = 0;
 	char c;
@@ -13,7 +15,7 @@ int getinput(char* input) {
 	input[i] = '\0';
 }
 
-int parsecmd(char* cmd, char** arguments, int* argc) {
+void parsecmd(char* cmd, char** arguments, int* argc) {
 	int i = 0;
 	int argindex = 0;
 	int charpos = 0;
@@ -27,15 +29,15 @@ int parsecmd(char* cmd, char** arguments, int* argc) {
 		}
 		while(cmd[i] == ' ')
 			i++;
-		arguments[argindex][charpos] = '\0';	
+		arguments[argindex][charpos] = '\0';
 		if(charpos)
-			argindex++;	
-	}	
-	arguments[argindex] = NULL;	
+			argindex++;
+	}
+	arguments[argindex] = NULL;
 	*argc = argindex;
 }
 
-int run(char* cmd) {
+void run(char* cmd) {
 	char* arguments[10];
 	int cpid;
 	int i;
@@ -51,18 +53,20 @@ int run(char* cmd) {
 		arguments[argc-1][length-1] = '\0';
 		if((length-1) == 0)
 			arguments[argc-1] = NULL;
-		background = 1;	
+		background = 1;
 	}
 	cpid = fork();
 	//if child
 	if(cpid == 0) {
 		execvp(arguments[0], arguments);
-		printf("Unknown command");
+		printf("Unknown command\n");
 	}
 	//if parent
-	else 
-		if(! background) 
-			wait(cpid);
+	else
+		if(! background) {
+			int status;
+			waitpid(cpid, &status, 0);
+		}
 }
 
 int main() {
@@ -73,5 +77,5 @@ int main() {
 		if(*input)
 			run(input);
 		getinput(input);
-	}	
+	}
 }
