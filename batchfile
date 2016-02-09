@@ -1,0 +1,5 @@
+alias ls ls --color=auto
+ls
+pwd
+ps
+ls -al

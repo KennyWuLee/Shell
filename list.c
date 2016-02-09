@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "list.h"
 
 void push(node_t** head, int val) {
@@ -48,12 +49,12 @@ int remove_by_value(node_t ** head, int val) {
     return -1;
 }
 
-void print_list(node_t * head) {
-    node_t * current = head;
-    while (current != NULL) {
-        printf("%d,", current->val);
-        current = current->next;
-    }
+void print_list(node_t * head, char* s) {
+  node_t * current = head;
+  while (current != NULL) {
+    sprintf(s + strlen(s), "%d,", current->val);
+    current = current->next;
+  }
 }
 
 int is_empty(node_t* head) {
