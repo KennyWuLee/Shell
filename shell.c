@@ -56,8 +56,8 @@ void parsecmd(char* cmd, char** arguments, int* background) {
 		}
 	}
 	arguments[argindex] = NULL;
-	*background = 0;
 	//deal with ampersand
+	*background = 0;
 	if(argindex > 0) {
 		length = strlen(arguments[argindex-1]);
 		if(arguments[argindex-1][length-1] == '&') {
@@ -80,6 +80,7 @@ void run(char** arguments, int background) {
 		if(cpid == 0) {
 					execvp(arguments[0], arguments);
 					printf("Unknown command\n");
+					exit(1);
 		}
 		//if parent
 		else
@@ -95,19 +96,41 @@ void run(char** arguments, int background) {
 
 int main() {
 	char input[100];
-	int terminated, status, background = 0, i;
-	char* arguments[10];
-	char* command;
+	int terminated, status, background = 0, i, j;
+	char *arguments[10], *temp[10];
+	char** alias;
 
 	signal(SIGINT, intHandler);
 
 	while(getinput(input)) {
 		parsecmd(input, arguments, &background);
 		if(arguments[0]) {
-			if((command = getCommandForAlias(arguments[0]))) {
+			alias = getCommandForAlias(arguments[0]);
+			if(alias) {
+				while(alias[i])
+					printf("%s\n", alias[i++]);
 				free(arguments[0]);
-				arguments[0] = malloc(strlen(command) * sizeof(char));
-				strcpy(arguments[0], command);
+				//save original argumetns
+				i = 0;
+				while (arguments[i+1]) {
+					temp[i] = arguments[i+1];
+					i++;
+				}
+				temp[i]=NULL;
+				//put in alias and arguments
+				i = 0;
+				while(alias[i]) {
+					arguments[i] = malloc(strlen(alias[i]) * sizeof(char));
+					strcpy(arguments[i], alias[i]);
+					i++;
+				}
+				//append original arguments
+				j = 0;
+				while(temp[j]) {
+					arguments[i+j] = temp[j];
+					j++;
+				}
+				arguments[i+j] = NULL;
 			}
 			if(strcmp(arguments[0], "exit") == 0) {
 				break;
@@ -116,15 +139,17 @@ int main() {
 				if(! arguments[1] || ! arguments[2])
 					printf("%s\n", "usage: alias alias command");
 				else
-					add_alias(arguments[1], arguments[2]);
+					add_alias(arguments[1], arguments+2);
 			} else {
 				run(arguments, background);
 			}
 		}
 		//clean up arguments array
 		i = 0;
-		while(arguments[i])
-			free(arguments[i++]);
+		while(arguments[i]) {
+			free(arguments[i]);
+			arguments[i++] = NULL;
+		}
 		//check if any background processes are done
 		while((terminated = waitpid(-1, &status, WNOHANG)) > 0) {
 			printf("\nbackground process %d terminated\n", terminated);
