@@ -9,11 +9,11 @@
 #include "list.h"
 #include "alias.h"
 
-char prompt[100];
+char setprompt[100] = "";
 node_t* backgroundTasks = NULL;
 int foregroundTask = 0;
 
-void processInput(FILE* stream);
+void processInput(FILE* stream, char* promt);
 void processFile(char* filename);
 
 void intHandler(int sig) {
@@ -26,7 +26,7 @@ void intHandler(int sig) {
 	}
 }
 
-int getinput(char* input, FILE* stream) {
+int getinput(char* input, FILE* stream, char* prompt) {
 	int i = 0, c;
 	printf("%s", prompt);
 	while((c = fgetc(stream)) != EOF) {
@@ -81,9 +81,9 @@ void run(char** arguments, int background) {
 		cpid = fork();
 		//if child
 		if(cpid == 0) {
-					execvp(arguments[0], arguments);
-					printf("Unknown command\n");
-					exit(1);
+			execvp(arguments[0], arguments);
+			printf("Unknown command\n");
+			exit(1);
 		}
 		//if parent
 		else
@@ -99,13 +99,9 @@ void run(char** arguments, int background) {
 
 void processFile(char* filename) {
 	FILE* batch;
-	char* temp;
 	batch = fopen(filename, "r");
 	if(batch) {
-		temp = prompt;
-		strcpy(prompt, "");
-		processInput(batch);
-		strcpy(prompt, temp);
+		processInput(batch, "");
 	}
 	else
 		printf("error opening %s\n", filename);
@@ -138,13 +134,13 @@ void insertAlias(char** arguments, char** alias) {
 	arguments[i+j] = NULL;
 }
 
-void processInput(FILE* stream) {
+void processInput(FILE* stream, char* prompt) {
 	char input[100];
 	int terminated, status, background = 0, i;
 	char *arguments[10];
 	char** alias;
 
-	while(getinput(input, stream)) {
+	while(getinput(input, stream, prompt)) {
 		parsecmd(input, arguments, &background);
 		if(arguments[0]) {
 			//chack if alias
@@ -177,7 +173,7 @@ void processInput(FILE* stream) {
 				if(! arguments[1])
 					printf("%s\n", "usage: prompt prompt");
 				else
-					strcpy(prompt, arguments[1]);
+					strcpy(setprompt, arguments[1]);
 			} else
 				run(arguments, background);
 		}
@@ -193,11 +189,11 @@ void processInput(FILE* stream) {
 			remove_by_value(&backgroundTasks, terminated);
 		}
 	}
-	printf("%s\n", "");
 }
 
 int main() {
 	signal(SIGINT, intHandler);
 	processFile("defaults");
-	processInput(stdin);
+	processInput(stdin, setprompt);
+	return 0; 
 }
